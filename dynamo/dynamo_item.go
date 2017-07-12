@@ -16,8 +16,8 @@ func NewItem() Item {
 	return make(Item)
 }
 
-// NewItemStruct returns a new item from struct.
-func NewItemStruct(value interface{}) (Item, error) {
+// Marshal returns a new item from struct.
+func Marshal(value interface{}) (Item, error) {
 	v, err := dynamodbattribute.MarshalMap(value)
 	if err != nil {
 		return nil, err
@@ -26,8 +26,8 @@ func NewItemStruct(value interface{}) (Item, error) {
 	return Item(v), nil
 }
 
-// MustItemStruct returns a new item from struct.
-func MustItemStruct(value interface{}) Item {
+// MustMarshal returns a new item from struct.
+func MustMarshal(value interface{}) Item {
 	v, err := dynamodbattribute.MarshalMap(value)
 	if err != nil {
 		panic(err)
@@ -36,8 +36,8 @@ func MustItemStruct(value interface{}) Item {
 	return Item(v)
 }
 
-// Struct value.
-func (m Item) Struct(name string, value interface{}) (Item, error) {
+// Marshal value.
+func (m Item) Marshal(name string, value interface{}) (Item, error) {
 	v, err := dynamodbattribute.MarshalMap(value)
 	if err != nil {
 		return nil, err
@@ -50,8 +50,8 @@ func (m Item) Struct(name string, value interface{}) (Item, error) {
 	return m, nil
 }
 
-// MustStruct value.
-func (m Item) MustStruct(name string, value interface{}) Item {
+// MustMarshal value.
+func (m Item) MustMarshal(name string, value interface{}) Item {
 	v, err := dynamodbattribute.MarshalMap(value)
 	if err != nil {
 		panic(err)
