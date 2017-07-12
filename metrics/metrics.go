@@ -1,4 +1,4 @@
-// Package metrics provides higher level CloudWatch metrics operations.
+// Package metrics provides high level CloudWatch metrics operations.
 package metrics
 
 import (
