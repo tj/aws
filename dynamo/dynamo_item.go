@@ -8,16 +8,36 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
 
-// Map of attributes.
-type Map map[string]*dynamodb.AttributeValue
+// Item is a map of attributes.
+type Item map[string]*dynamodb.AttributeValue
 
-// NewMap returns a new map.
-func NewMap() Map {
-	return make(Map)
+// NewItem returns a new item.
+func NewItem() Item {
+	return make(Item)
+}
+
+// NewItemStruct returns a new item from struct.
+func NewItemStruct(value interface{}) (Item, error) {
+	v, err := dynamodbattribute.MarshalMap(value)
+	if err != nil {
+		return nil, err
+	}
+
+	return Item(v), nil
+}
+
+// MustItemStruct returns a new item from struct.
+func MustItemStruct(value interface{}) Item {
+	v, err := dynamodbattribute.MarshalMap(value)
+	if err != nil {
+		panic(err)
+	}
+
+	return Item(v)
 }
 
 // Struct value.
-func (m Map) Struct(name string, value interface{}) (Map, error) {
+func (m Item) Struct(name string, value interface{}) (Item, error) {
 	v, err := dynamodbattribute.MarshalMap(value)
 	if err != nil {
 		return nil, err
@@ -31,7 +51,7 @@ func (m Map) Struct(name string, value interface{}) (Map, error) {
 }
 
 // MustStruct value.
-func (m Map) MustStruct(name string, value interface{}) Map {
+func (m Item) MustStruct(name string, value interface{}) Item {
 	v, err := dynamodbattribute.MarshalMap(value)
 	if err != nil {
 		panic(err)
@@ -45,7 +65,7 @@ func (m Map) MustStruct(name string, value interface{}) Map {
 }
 
 // String value.
-func (m Map) String(name, value string) Map {
+func (m Item) String(name, value string) Item {
 	m[name] = &dynamodb.AttributeValue{
 		S: &value,
 	}
@@ -53,7 +73,7 @@ func (m Map) String(name, value string) Map {
 }
 
 // StringSet value.
-func (m Map) StringSet(name string, value []string) Map {
+func (m Item) StringSet(name string, value []string) Item {
 	m[name] = &dynamodb.AttributeValue{
 		SS: aws.StringSlice(value),
 	}
@@ -61,8 +81,8 @@ func (m Map) StringSet(name string, value []string) Map {
 }
 
 // Map value.
-func (m Map) Map(name string) Map {
-	v := NewMap()
+func (m Item) Map(name string) Item {
+	v := make(Item)
 	m[name] = &dynamodb.AttributeValue{
 		M: v,
 	}
@@ -70,7 +90,7 @@ func (m Map) Map(name string) Map {
 }
 
 // Null value.
-func (m Map) Null(name string) Map {
+func (m Item) Null(name string) Item {
 	m[name] = &dynamodb.AttributeValue{
 		NULL: aws.Bool(true),
 	}
@@ -78,7 +98,7 @@ func (m Map) Null(name string) Map {
 }
 
 // Blob value.
-func (m Map) Blob(name string, value []byte) Map {
+func (m Item) Blob(name string, value []byte) Item {
 	m[name] = &dynamodb.AttributeValue{
 		B: value,
 	}
@@ -86,7 +106,7 @@ func (m Map) Blob(name string, value []byte) Map {
 }
 
 // Bool value.
-func (m Map) Bool(name string, value bool) Map {
+func (m Item) Bool(name string, value bool) Item {
 	m[name] = &dynamodb.AttributeValue{
 		BOOL: &value,
 	}
@@ -94,7 +114,7 @@ func (m Map) Bool(name string, value bool) Map {
 }
 
 // BinarySet value.
-func (m Map) BinarySet(name string, value [][]byte) Map {
+func (m Item) BinarySet(name string, value [][]byte) Item {
 	m[name] = &dynamodb.AttributeValue{
 		BS: value,
 	}
@@ -102,7 +122,7 @@ func (m Map) BinarySet(name string, value [][]byte) Map {
 }
 
 // Int value.
-func (m Map) Int(name string, value int) Map {
+func (m Item) Int(name string, value int) Item {
 	s := strconv.Itoa(value)
 	m[name] = &dynamodb.AttributeValue{
 		N: &s,
@@ -111,7 +131,7 @@ func (m Map) Int(name string, value int) Map {
 }
 
 // IntSet value.
-func (m Map) IntSet(name string, value []int) Map {
+func (m Item) IntSet(name string, value []int) Item {
 	var s []*string
 
 	for _, n := range value {
@@ -127,7 +147,7 @@ func (m Map) IntSet(name string, value []int) Map {
 }
 
 // Float value.
-func (m Map) Float(name string, value float64) Map {
+func (m Item) Float(name string, value float64) Item {
 	s := strconv.FormatFloat(value, 'b', -1, 64)
 	m[name] = &dynamodb.AttributeValue{
 		N: &s,
@@ -136,7 +156,7 @@ func (m Map) Float(name string, value float64) Map {
 }
 
 // FloatSet value.
-func (m Map) FloatSet(name string, value []float64) Map {
+func (m Item) FloatSet(name string, value []float64) Item {
 	var s []*string
 
 	for _, n := range value {
@@ -149,4 +169,9 @@ func (m Map) FloatSet(name string, value []float64) Map {
 	}
 
 	return m
+}
+
+// Attributes returns the AttributeValue map.
+func (m Item) Attributes() map[string]*dynamodb.AttributeValue {
+	return map[string]*dynamodb.AttributeValue(m)
 }

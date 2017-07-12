@@ -9,12 +9,12 @@ import (
 )
 
 func Test(t *testing.T) {
-	a := NewMap()
+	i := NewItem()
 
-	a.Int("id", 12345).
+	i.Int("id", 12345).
 		String("user", "Tobi")
 
-	a.Map("meta").
+	i.Map("meta").
 		String("email", "tobi@apex.sh").
 		String("species", "ferret")
 
@@ -37,5 +37,5 @@ func Test(t *testing.T) {
 		},
 	}
 
-	assert.Equal(t, expected, map[string]*dynamodb.AttributeValue(a))
+	assert.Equal(t, expected, i.Attributes())
 }
