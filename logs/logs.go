@@ -15,20 +15,27 @@ type Event struct {
 	Message   string
 }
 
-// Config is used to configure Logs and Log.
+// Config options.
 type Config struct {
 	Service       cloudwatchlogsiface.CloudWatchLogsAPI
 	FilterPattern string
 	PollInterval  time.Duration
 	StartTime     time.Time
 	Follow        bool
+	GroupNames    []string
 }
 
-// Logs fetches or tails logs from CloudWatchLogs for any number of groups.
+// Logs tailer.
 type Logs struct {
 	Config
-	GroupNames []string
-	err        error
+	err error
+}
+
+// New log tailer with config.
+func New(c Config) *Logs {
+	return &Logs{
+		Config: c,
+	}
 }
 
 // Start consuming logs.
@@ -65,10 +72,10 @@ func (l *Logs) wait(done <-chan error) {
 
 // consume logs for group `name`.
 func (l *Logs) consume(name string, ch chan *Event, done chan error) {
-	log := Log{
-		Config:    l.Config,
-		GroupName: name,
-		Log:       log.WithField("group", name),
+	log := group{
+		Config: l.Config,
+		name:   name,
+		log:    log.WithField("group", name),
 	}
 
 	for event := range log.Start() {

@@ -9,45 +9,45 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 )
 
-// Log implements log fetching and polling for CloudWatchLogs,
-// and represents a single group.
-type Log struct {
+// group implements log fetching and polling for
+// a single CloudWatchLogs group.
+type group struct {
 	Config
-	GroupName string
-	Log       log.Interface
-	err       error
+	name string
+	log  log.Interface
+	err  error
 }
 
 // Start consuming logs.
-func (l *Log) Start() <-chan *Event {
+func (g *group) Start() <-chan *Event {
 	ch := make(chan *Event)
-	go l.start(ch)
+	go g.start(ch)
 	return ch
 }
 
 // start consuming and exit after pagination if Follow is not enabled.
-func (l *Log) start(ch chan<- *Event) {
+func (g *group) start(ch chan<- *Event) {
 	defer close(ch)
 
-	l.Log.Debug("enter")
-	defer l.Log.Debug("exit")
+	g.log.Debug("enter")
+	defer g.log.Debug("exit")
 
-	var start = l.StartTime.UnixNano() / int64(time.Millisecond)
+	var start = g.StartTime.UnixNano() / int64(time.Millisecond)
 	var nextToken *string
 	var err error
 
 	for {
-		l.Log.WithField("start", start).Debug("request")
-		nextToken, start, err = l.fetch(nextToken, start, ch)
+		g.log.WithField("start", start).Debug("request")
+		nextToken, start, err = g.fetch(nextToken, start, ch)
 
 		if err != nil {
-			l.err = fmt.Errorf("log %q: %s", l.GroupName, err)
+			g.err = fmt.Errorf("log %q: %s", g.name, err)
 			break
 		}
 
-		if nextToken == nil && l.Follow {
-			time.Sleep(l.PollInterval)
-			l.Log.WithField("start", start).Debug("poll")
+		if nextToken == nil && g.Follow {
+			time.Sleep(g.PollInterval)
+			g.log.WithField("start", start).Debug("poll")
 			continue
 		}
 
@@ -58,17 +58,17 @@ func (l *Log) start(ch chan<- *Event) {
 }
 
 // fetch logs relative to the given token and start time. We ignore when the log group is not found.
-func (l *Log) fetch(nextToken *string, start int64, ch chan<- *Event) (*string, int64, error) {
-	res, err := l.Service.FilterLogEvents(&cloudwatchlogs.FilterLogEventsInput{
-		LogGroupName:  &l.GroupName,
-		FilterPattern: &l.FilterPattern,
+func (g *group) fetch(nextToken *string, start int64, ch chan<- *Event) (*string, int64, error) {
+	res, err := g.Service.FilterLogEvents(&cloudwatchlogs.FilterLogEventsInput{
+		LogGroupName:  &g.name,
+		FilterPattern: &g.FilterPattern,
 		StartTime:     &start,
 		NextToken:     nextToken,
 	})
 
 	if e, ok := err.(awserr.Error); ok {
 		if e.Code() == "ResourceNotFoundException" {
-			l.Log.Debug("not found")
+			g.log.Debug("not found")
 			return nil, 0, nil
 		}
 	}
@@ -82,7 +82,7 @@ func (l *Log) fetch(nextToken *string, start int64, ch chan<- *Event) (*string, 
 		sec := *event.Timestamp / 1000
 		ch <- &Event{
 			Timestamp: time.Unix(sec, 0),
-			GroupName: l.GroupName,
+			GroupName: g.name,
 			Message:   *event.Message,
 		}
 	}
@@ -91,6 +91,6 @@ func (l *Log) fetch(nextToken *string, start int64, ch chan<- *Event) (*string, 
 }
 
 // Err returns the first error, if any, during processing.
-func (l *Log) Err() error {
-	return l.err
+func (g *group) Err() error {
+	return g.err
 }
