@@ -56,6 +56,12 @@ func (m *Metrics) Stat(name string) *Metrics {
 	return m
 }
 
+// Percentiles adds the percentile(s) in the form of "p50", "p90" and so on.
+func (m *Metrics) Percentiles(s ...string) *Metrics {
+	m.in.ExtendedStatistics = aws.StringSlice(s)
+	return m
+}
+
 // Dimension adds a dimension.
 func (m *Metrics) Dimension(name, value string) *Metrics {
 	m.in.Dimensions = append(m.in.Dimensions, &cloudwatch.Dimension{
