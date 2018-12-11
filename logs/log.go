@@ -1,6 +1,7 @@
 package logs
 
 import (
+	"container/list"
 	"fmt"
 	"time"
 
@@ -35,10 +36,11 @@ func (g *group) start(ch chan<- *Event) {
 	var start = g.StartTime.UnixNano() / int64(time.Millisecond)
 	var nextToken *string
 	var err error
+	var seenIds = list.New()
 
 	for {
 		g.log.WithField("start", start).Debug("request")
-		nextToken, start, err = g.fetch(nextToken, start, ch)
+		nextToken, start, err = g.fetch(nextToken, start, ch, seenIds)
 
 		if err != nil {
 			g.err = fmt.Errorf("log %q: %s", g.name, err)
@@ -58,7 +60,7 @@ func (g *group) start(ch chan<- *Event) {
 }
 
 // fetch logs relative to the given token and start time. We ignore when the log group is not found.
-func (g *group) fetch(nextToken *string, start int64, ch chan<- *Event) (*string, int64, error) {
+func (g *group) fetch(nextToken *string, start int64, ch chan<- *Event, seenIds *list.List) (*string, int64, error) {
 	limit := int64(10000)
 	res, err := g.Service.FilterLogEvents(&cloudwatchlogs.FilterLogEventsInput{
 		LogGroupName:  &g.name,
@@ -80,6 +82,13 @@ func (g *group) fetch(nextToken *string, start int64, ch chan<- *Event) (*string
 	}
 
 	for _, event := range res.Events {
+		if contains(seenIds, *event.EventId) {
+			continue
+		}
+		seenIds.PushFront(*event.EventId)
+		if int64(seenIds.Len()) > limit {
+			seenIds.Remove(seenIds.Back())
+		}
 		sec := *event.Timestamp / 1000
 		ch <- &Event{
 			Timestamp: time.Unix(sec, 0),
@@ -94,4 +103,13 @@ func (g *group) fetch(nextToken *string, start int64, ch chan<- *Event) (*string
 // Err returns the first error, if any, during processing.
 func (g *group) Err() error {
 	return g.err
+}
+
+func contains(l *list.List, value string) bool {
+	for e := l.Front(); e != nil; e = e.Next() {
+		if e.Value == value {
+			return true
+		}
+	}
+	return false
 }
