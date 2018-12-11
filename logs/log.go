@@ -59,6 +59,8 @@ func (g *group) start(ch chan<- *Event) {
 
 // fetch logs relative to the given token and start time. We ignore when the log group is not found.
 func (g *group) fetch(nextToken *string, start int64, ch chan<- *Event) (*string, int64, error) {
+	latest := start
+
 	res, err := g.Service.FilterLogEvents(&cloudwatchlogs.FilterLogEventsInput{
 		LogGroupName:  &g.name,
 		FilterPattern: &g.FilterPattern,
@@ -78,13 +80,23 @@ func (g *group) fetch(nextToken *string, start int64, ch chan<- *Event) (*string
 	}
 
 	for _, event := range res.Events {
-		start = *event.Timestamp + 1
-		sec := *event.Timestamp / 1000
+		ts := *event.Timestamp
+
+		if ts > latest {
+			latest = ts
+		}
+
+		sec := ts / 1000
+
 		ch <- &Event{
 			Timestamp: time.Unix(sec, 0),
 			GroupName: g.name,
 			Message:   *event.Message,
 		}
+	}
+
+	if res.NextToken == nil {
+		return nil, latest + 1, nil
 	}
 
 	return res.NextToken, start, nil
