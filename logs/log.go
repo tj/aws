@@ -59,11 +59,13 @@ func (g *group) start(ch chan<- *Event) {
 
 // fetch logs relative to the given token and start time. We ignore when the log group is not found.
 func (g *group) fetch(nextToken *string, start int64, ch chan<- *Event) (*string, int64, error) {
+	limit := int64(10000)
 	res, err := g.Service.FilterLogEvents(&cloudwatchlogs.FilterLogEventsInput{
 		LogGroupName:  &g.name,
 		FilterPattern: &g.FilterPattern,
 		StartTime:     &start,
 		NextToken:     nextToken,
+		Limit:         &limit,
 	})
 
 	if e, ok := err.(awserr.Error); ok {
