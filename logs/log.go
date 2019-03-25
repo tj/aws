@@ -40,6 +40,14 @@ func (g *group) start(ch chan<- *Event) {
 		g.log.WithField("start", start).Debug("request")
 		nextToken, start, err = g.fetch(nextToken, start, ch)
 
+		if e, ok := err.(awserr.Error); ok {
+			if e.Code() == "ThrottlingException" {
+				g.log.Debug("throttled")
+				time.Sleep(time.Second * 2)
+				continue
+			}
+		}
+
 		if err != nil {
 			g.err = fmt.Errorf("log %q: %s", g.name, err)
 			break
