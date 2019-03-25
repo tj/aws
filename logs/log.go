@@ -40,14 +40,6 @@ func (g *group) start(ch chan<- *Event) {
 		g.log.WithField("start", start).Debug("request")
 		nextToken, start, err = g.fetch(nextToken, start, ch)
 
-		if e, ok := err.(awserr.Error); ok {
-			if e.Code() == "ThrottlingException" {
-				g.log.Debug("throttled")
-				time.Sleep(time.Second * 2)
-				continue
-			}
-		}
-
 		if err != nil {
 			g.err = fmt.Errorf("log %q: %s", g.name, err)
 			break
@@ -77,7 +69,12 @@ func (g *group) fetch(nextToken *string, start int64, ch chan<- *Event) (*string
 	})
 
 	if e, ok := err.(awserr.Error); ok {
-		if e.Code() == "ResourceNotFoundException" {
+		switch e.Code() {
+		case "ThrottlingException":
+			g.log.Debug("throttled")
+			time.Sleep(time.Second * 2)
+			return nextToken, start, nil
+		case "ResourceNotFoundException":
 			g.log.Debug("not found")
 			return nil, 0, nil
 		}
