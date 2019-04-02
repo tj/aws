@@ -100,14 +100,10 @@ func (g *group) fetch(nextToken *string, start int64, ch chan<- *Event) (*string
 		}
 	}
 
-	if res.NextToken == nil {
-		return nil, latest + 1, nil
-	}
-
-	return res.NextToken, start, nil
+	return res.NextToken, latest + 1, nil
 }
 
-// Err returns the first error, if any, during processing.
+// Err returns the first error during processing, or nil.
 func (g *group) Err() error {
 	return g.err
 }
